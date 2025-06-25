@@ -28,6 +28,7 @@ namespace CypherWPF
         private enum ReminderState
         {
             None,                 
+
             AwaitingYesNo,          
             AwaitingTimeSpec        
         }

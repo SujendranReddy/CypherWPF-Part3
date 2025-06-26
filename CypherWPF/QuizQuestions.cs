@@ -67,5 +67,20 @@ namespace CypherWPF
             1
         )
     };
+
+        public static readonly List<string> quizExplanations = new List<string>()
+{
+    "Phishing tricks people into giving personal info through fake messages or sites.",
+    "The strongest passwords are long, random, and use special characters.",
+    "A VPN encrypts your connection, protecting your data on public Wi-Fi.",
+    "2FA means you need a password *plus* something else—like a code or device.",
+    "VPNs encrypt internet traffic, keeping it private and secure.",
+    "Typos and bad grammar are signs of fake/scam emails.",
+    "Backups protect against many risks including ransomware, accidents, and hardware failures.",
+    ".exe is a common extension for executable programs in Windows.",
+    "A strong passphrase is long, unique, and easier to remember than random characters.",
+    "Updates patch known security issues hackers might exploit."
+};
+
     }
 }

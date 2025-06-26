@@ -781,6 +781,7 @@ Topics you can ask me about:
             }
 
             var (question, options, correct) = QuizQuestions.quizQuestions[_quizCurrent.Value];
+            string explanation = QuizQuestions.quizExplanations[_quizCurrent.Value];
 
             if (answer < 1 || answer > options.Length)
             {
@@ -797,6 +798,9 @@ Topics you can ask me about:
             {
                 await AddChatMessageWithEffect($"Incorrect. The correct answer was: {options[correct]}", Brushes.Red);
             }
+
+            // 💬 Show explanation no matter what
+            await AddChatMessageWithEffect($"Explanation: {explanation}", Brushes.LightSkyBlue);
 
             _quizCurrent++;
 

@@ -55,6 +55,12 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="ClarificationData.cs" />
+    <Compile Include="KeywordTips.cs" />
+    <Compile Include="PromptVariants.cs" />
+    <Compile Include="QuizQuestions.cs" />
+    <Compile Include="SentimentData.cs" />
+    <Compile Include="TopicDefinitions.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

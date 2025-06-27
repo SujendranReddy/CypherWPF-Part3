@@ -55,12 +55,12 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="ClarificationData.cs" />
-    <Compile Include="KeywordTips.cs" />
-    <Compile Include="PromptVariants.cs" />
-    <Compile Include="QuizQuestions.cs" />
-    <Compile Include="SentimentData.cs" />
-    <Compile Include="TopicDefinitions.cs" />
+    <Compile Include="Lists\ClarificationData.cs" />
+    <Compile Include="Lists\KeywordTips.cs" />
+    <Compile Include="Lists\PromptVariants.cs" />
+    <Compile Include="Lists\QuizQuestions.cs" />
+    <Compile Include="Lists\SentimentData.cs" />
+    <Compile Include="Lists\TopicDefinitions.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -76,6 +76,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Methods\ActivityLog.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>

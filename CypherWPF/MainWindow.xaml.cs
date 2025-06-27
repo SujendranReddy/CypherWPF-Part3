@@ -1,9 +1,11 @@
-﻿using System;
+﻿using CypherWPF.Methods;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Media;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -58,6 +60,7 @@ namespace CypherWPF
 
         private async Task DisplayBannerWithEffect()
         {
+            // Banner
             string banner = @"
 _________                  .__                     
 \_   ___ \  ___.__.______  |  |__    ____  _______ 
@@ -71,13 +74,14 @@ _________                  .__
 
         private void PlayIntroductionAudio(string filePath)
         {
+            // Play audio and catch error
             try
             {
                 string fullPath = Path.Combine(Directory.GetCurrentDirectory(), filePath);
                 if (File.Exists(fullPath))
                 {
                     var player = new SoundPlayer(fullPath);
-                    player.Play(); // Non-blocking play
+                    player.Play(); 
                 }
                 else
                 {
@@ -92,6 +96,7 @@ _________                  .__
 
         private async Task AskNameAndGreet()
         {
+            //What the user is greeted with
             await AddChatMessageWithEffect("Cypher: What's your name?", Brushes.Green);
             waitingForName = true;
             InputTextBox.IsEnabled = true;
@@ -101,6 +106,7 @@ _________                  .__
 
         private async Task CompleteGreeting()
         {
+            //Method after user enters their name
             DrawDivider("WELCOME");
             await AddChatMessageWithEffect($"\nHello, {userName}! I'm Cypher, your online safety buddy. Let's keep the web safe together!\n", Brushes.Magenta);
 
@@ -117,28 +123,34 @@ _________                  .__
             await AddChatMessageWithEffect($"\nCypher: {GetRandomPrompt(userName)}", Brushes.White);
         }
 
+        //Method that shows main topics
         private async Task ShowMainTopics()
         {
             string topics = @"
 Topics you can ask me about:
-  [1] Social Media Safety  
-  [2] Phishing Awareness  
-  [3] Strong Passwords  
-  [4] Avoiding Scams  
-  [5] Wi-Fi Security  
-  [6] Device Protection  
-  [7] Staying Safe Online  
-  [8] Privacy Settings  
-  [9] Software Updates  
-  [10] Malware Protection  
-  [11] Using a VPN  
-  [12] Backing Up Your Data  
-  [13] Two-Factor Authentication  
-  [14] App Permissions";
+  - Social Media Safety  
+  - Phishing Awareness  
+  - Strong Passwords  
+  - Avoiding Scams  
+  - Wi-Fi Security  
+  - Device Protection  
+  - Staying Safe Online  
+  - Privacy Settings  
+  - Software Updates  
+  - Malware Protection  
+
+Other commands you can try:
+  - add task <description>     (Add a new task)
+  - view tasks                (View your tasks)
+  - view acitivity log        (View your acitivities)
+  - complete task <number>    (Mark a task complete)
+  - delete task <number>      (Delete a task)
+  - start quiz                (Start the cybersecurity quiz)";
 
             await AddChatMessageWithEffect(topics, Brushes.Yellow);
         }
 
+        // Method to seperate responses
         private void DrawDivider(string text)
         {
             var dividerText = $"\n{new string('-', 40)}\n--- {text} ---\n{new string('-', 40)}";
@@ -177,6 +189,7 @@ Topics you can ask me about:
             ChatScrollViewer.ScrollToEnd();
         }
 
+        //Effect to delay text
         private async Task TypeWriterEffect(TextBlock textBlock, string text, int delay)
         {
             textBlock.Text = "";
@@ -187,6 +200,7 @@ Topics you can ask me about:
             }
         }
 
+        //Method to retrieve a random prompt
         private string GetRandomPrompt(string userName)
         {
             var rand = new Random();
@@ -206,27 +220,23 @@ Topics you can ask me about:
             }
         }
 
+        //This method process input and was added to adjust the code to WPF
         private async Task ProcessInput()
         {
             string input = InputTextBox.Text.Trim();
             if (string.IsNullOrEmpty(input)) return;
 
-            // ── show the user's line
             AddChatMessage($"You: {input}", Brushes.Yellow);
             InputTextBox.Text = "";
 
-            // ── name capture phase
             if (waitingForName)
             {
                 userName = input;
                 waitingForName = false;
                 await CompleteGreeting();
-                if (!_quizActive)
-                    await AddChatMessageWithEffect($"\nCypher: {GetRandomPrompt(userName)}", Brushes.White);
                 return;
             }
 
-            // ── favourite-topic “yes / no” follow-up
             if (waitingForFavoriteResponse)
             {
                 waitingForFavoriteResponse = false;
@@ -239,14 +249,12 @@ Topics you can ask me about:
                 {
                     await AddChatMessageWithEffect("Cypher: No worries! Let me know if you want tips on anything else.", Brushes.Gray);
                 }
-
                 if (!_quizActive)
                     await AddChatMessageWithEffect($"\nCypher: {GetRandomPrompt(userName)}", Brushes.White);
                 return;
             }
 
-            // ── exit command
-            if (input.Equals("exit", StringComparison.OrdinalIgnoreCase))
+            if (ClarificationData.ExitTriggers.Any(trigger => input.Equals(trigger, StringComparison.OrdinalIgnoreCase)))
             {
                 DrawDivider("GOODBYE");
                 await AddChatMessageWithEffect("\nCypher: Stay secure out there!", Brushes.Magenta);
@@ -255,7 +263,6 @@ Topics you can ask me about:
                 return;
             }
 
-            // ── help command
             if (input.Equals("help", StringComparison.OrdinalIgnoreCase))
             {
                 await HandleHelpMenu();
@@ -264,15 +271,22 @@ Topics you can ask me about:
                 return;
             }
 
-            // ── normal routing -----------------------------------------------
             DrawDivider("RESPONSE");
+
+            if (input.Equals("show activity log", StringComparison.OrdinalIgnoreCase))
+            {
+                var logEntries = ActivityLog.GetSummary();
+                await AddChatMessageWithEffect("Cypher: Activity log:\n" + string.Join("\n", logEntries), Brushes.LightBlue);
+                return;
+            }
+
             await HandleUserQuery(input.ToLower());
 
-            // ── idle prompt only if *not* in the middle of a quiz
             if (!_quizActive)
                 await AddChatMessageWithEffect($"\nCypher: {GetRandomPrompt(userName)}", Brushes.White);
         }
 
+        // Help menu
         private async Task HandleHelpMenu()
         {
             DrawDivider("HELP MENU");
@@ -286,68 +300,108 @@ Topics you can ask me about:
             await AddChatMessageWithEffect("\nTip: Type a number or keyword like 'phishing' to learn more.", Brushes.Gray);
         }
 
+        //Handles user input by having entry points for other methods
         private async Task HandleUserQuery(string input)
         {
+            if (string.IsNullOrWhiteSpace(input))
+                return;
 
-            if (input.Equals("start quiz", StringComparison.OrdinalIgnoreCase))
+            // Handle reminder yes/no first
+            if (_reminderState == ReminderState.AwaitingYesNo &&
+                (input.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+                 input.Equals("no", StringComparison.OrdinalIgnoreCase)))
+            {
+                await HandleReminderYesNo(input);
+                return;
+            }
+
+            // Handle reminder time specification next
+            if (_reminderState == ReminderState.AwaitingTimeSpec)
+            {
+                await HandleReminderTimeSpec(input);
+                return;
+            }
+
+            // Quiz stop commands
+            if (_quizActive)
+            {
+                string[] quitWords = { "exit quiz", "quit quiz", "stop quiz", "cancel quiz",
+                               "leave quiz", "end quiz", "abort quiz", "give up quiz" };
+
+                if (quitWords.Any(w => input.IndexOf(w, StringComparison.OrdinalIgnoreCase) >= 0))
+                {
+                    int total = QuizQuestions.quizQuestions.Count;
+                    await AddChatMessageWithEffect(
+                        $"Cypher: Quiz cancelled. You answered {_quizCurrent ?? 0} of {total} questions. " +
+                        $"Your score so far: {_quizScore}/{_quizCurrent ?? 0}.",
+                        Brushes.Gold);
+
+                    _quizActive = false;
+                    _quizCurrent = null;
+                    _quizScore = 0;
+                    return;
+                }
+            }
+
+            // Activity log commands
+            if (Regex.IsMatch(input,
+                @"\b(?:can you\s+)?show(?: me)?(?: the)?(?: my)? activity log\b",
+                RegexOptions.IgnoreCase))
+            {
+                await AddChatMessageWithEffect(ActivityLog.GetSummary(), Brushes.LightBlue);
+                return;
+            }
+
+            // Start quiz
+            if (ClarificationData.StartQuizTriggers.Any(t => input.Equals(t, StringComparison.OrdinalIgnoreCase)))
             {
                 _quizActive = true;
                 _quizCurrent = 0;
                 _quizScore = 0;
+                ActivityLog.RecordQuizStart();
+
+                string quizRules =
+                    " **Quiz Time – Rules of the Game:**\n" +
+                    "- Answer using **numbers only** (e.g., 1, 2, 3).\n" +
+                    "- Type **exit quiz** at any time to stop.\n" +
+                    "- One shot per question – no changing answers.\n" +
+                    "- Your score will appear at the end.\n" +
+                    "Good luck!";
+
+                await AddChatMessageWithEffect(quizRules, Brushes.LightYellow);
                 await SendQuizQuestion();
-                return; 
+                return;
             }
 
+            // Handle quiz answers
             if (await HandleQuizAnswer(input))
-                return; 
-
-
-            bool handled = await HandleTaskAssistantCommands(input);
-            if (handled)
                 return;
 
-            // Sentiment detection
-            string detectedEmotion = DetectSentiment(input);
-            if (detectedEmotion != null)
+            // Task commands
+            if (await HandleTaskAssistantCommands(input))
+                return;
+
+            // Sentiment
+            string emotion = DetectSentiment(input);
+            if (emotion != null)
             {
-                await RespondSentiment(detectedEmotion, input);
+                await RespondSentiment(emotion, input);
                 return;
             }
 
-            // Definition requests
+            // Definitions
             if (await TryGetDefinition(input))
                 return;
 
-            // More details 
-            if (ClarificationData.clarificationTriggers.Any(phrase => input.Contains(phrase)))
+            // Clarifications
+            if (ClarificationData.clarificationTriggers.Any(p =>
+                    input.IndexOf(p, StringComparison.OrdinalIgnoreCase) >= 0))
             {
-                if (currentTopic != null && KeywordTips.keywordTips.ContainsKey(currentTopic))
-                {
-                    var tips = KeywordTips.keywordTips[currentTopic];
-                    var available = Enumerable.Range(0, tips.Count)
-                                              .Where(i => !usedTipIndices.Contains(i))
-                                              .ToList();
-                    if (available.Count == 0)
-                    {
-                        await AddChatMessageWithEffect("Cypher: I've shared all I have on that topic. Want to ask about something else?", Brushes.Cyan);
-                        currentTopic = null;
-                        usedTipIndices.Clear();
-                    }
-                    else
-                    {
-                        int idx = new Random().Next(available.Count);
-                        usedTipIndices.Add(available[idx]);
-                        await AddChatMessageWithEffect($"Cypher: Sure, here's another tip on {currentTopic}: {tips[available[idx]]}", Brushes.Cyan);
-                    }
-                }
-                else
-                {
-                    await AddChatMessageWithEffect("Cypher: Could you clarify which topic you'd like more details on?", Brushes.Cyan);
-                }
+                await HandleClarificationFlow(input);
                 return;
             }
 
-            // Favorite topic
+            // Favorite topic / boredom / new topic
             if (TryDetectFavoriteTopic(input))
             {
                 await AddChatMessageWithEffect($"Cypher: Got it! I'll remember you're interested in {favoriteTopic}.", Brushes.Magenta);
@@ -355,14 +409,12 @@ Topics you can ask me about:
                 return;
             }
 
-            // IsBored method
             if (IsBored(input) && favoriteTopic != null)
             {
                 await FavoriteTopicTip();
                 return;
             }
 
-            // New topic selected
             string matchedTopic = GetMatchedTopic(input);
             if (matchedTopic != null)
             {
@@ -372,10 +424,13 @@ Topics you can ask me about:
                 return;
             }
 
-            // Default response
-            await AddChatMessageWithEffect("Cypher: Sorry, I don't have info on that right now. Try asking about scams, privacy, or social media safety.", Brushes.Gray);
+            // Fallback
+            await AddChatMessageWithEffect(
+                "Cypher: Sorry, I don't have info on that right now. Try asking about scams, privacy, or social media safety.",
+                Brushes.Gray);
         }
 
+        //Method to detect sentiment
         private string DetectSentiment(string input)
         {
             foreach (var word in SentimentData.sentimentKeywords)
@@ -386,6 +441,7 @@ Topics you can ask me about:
             return null;
         }
 
+        //Method to respond when sentiment is detected 
         private async Task RespondSentiment(string emotion, string input)
         {
             await AddChatMessageWithEffect($"Cypher: I understand you're feeling {emotion}. Cybersecurity can feel overwhelming, here's a tip…", Brushes.Magenta);
@@ -408,14 +464,15 @@ Topics you can ask me about:
 
         private bool TryDetectFavoriteTopic(string input)
         {
-            string[] triggerWords = new[] { "favorite", "favourite", "interested in", "like", "love" };
+            var triggerWords = ClarificationData.FavoriteTopicTriggers; 
+
             foreach (string trigger in triggerWords)
             {
-                if (input.Contains(trigger))
+                if (input.IndexOf(trigger, StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     foreach (var topic in KeywordTips.keywordTips.Keys)
                     {
-                        if (input.Contains(topic))
+                        if (input.IndexOf(topic, StringComparison.OrdinalIgnoreCase) >= 0)
                         {
                             favoriteTopic = topic;
                             return true;
@@ -426,9 +483,10 @@ Topics you can ask me about:
             return false;
         }
 
+
         private bool IsBored(string input)
         {
-            string[] bored = new[] { "hello", "hi", "hey", "greetings", "whats up", "ok", "cool", "bored", "boring", "idk", "i dont know" };
+            string[] bored = new[] { "tips", "tip", "greetings", "whats up", "ok", "cool", "bored", "boring", "idk", "i dont know" };
             return bored.Any(g => input.Contains(g));
         }
 
@@ -517,46 +575,133 @@ Topics you can ask me about:
                 IsDone = false;
             }
         }
+        // Regex for units of time
+        private static readonly Regex RemindCmdRegex =
+            new Regex(@"task\s+(\d+)\s+in\s+(\d+)\s+(seconds?|minutes?|hours?|days?)",
+                      RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        //This method hadnles task related features, add, delete, complete, and reminder.
         private async Task<bool> HandleTaskAssistantCommands(string input)
         {
-                if (_reminderState == ReminderState.AwaitingYesNo)
+            if (_reminderState == ReminderState.AwaitingYesNo &&
+        (input.Equals("yes", StringComparison.OrdinalIgnoreCase) ||
+         input.Equals("no", StringComparison.OrdinalIgnoreCase)))
+            {
                 return await HandleReminderYesNo(input);
+            }
 
             if (_reminderState == ReminderState.AwaitingTimeSpec)
+            {
                 return await HandleReminderTimeSpec(input);
+            }
+            string nlTask = ExtractNaturalLanguageTask(input);
+            if (nlTask != null) input = "add task " + nlTask;
 
             if (input.StartsWith("add task ", StringComparison.OrdinalIgnoreCase))
             {
-                string task = input.Substring("add task ".Length).Trim();   
-                if (!string.IsNullOrWhiteSpace(task))
+                string task = input.Substring("add task ".Length).Trim();
+                if (string.IsNullOrWhiteSpace(task))
                 {
-                    taskList.Add(new TaskItem(task));
-                    int idx = taskList.Count;                              
+                    await AddChatMessageWithEffect("Cypher: Please provide a valid task description.", Brushes.Red);
+                    return true;
+                }
 
+                taskList.Add(new TaskItem(task));
+                ActivityLog.RecordTaskAdded();
+                int idx = taskList.Count;
+
+                await AddChatMessageWithEffect($"Cypher: Task added – \"{task}\" (#{idx})", Brushes.LightGreen);
+
+                _pendingReminderIndex = idx;
+                _reminderState = ReminderState.AwaitingYesNo;
+                await AddChatMessageWithEffect("Cypher: Would you like a reminder for this task? (yes/no)",
+                                               Brushes.LightBlue);
+                return true;
+            }
+            //Remind task
+            if (input.IndexOf("remind", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                input.IndexOf("reminder", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                input.IndexOf("alert", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                Match m = RemindCmdRegex.Match(input);
+                if (m.Success)
+                {
+                    int taskIdx = int.Parse(m.Groups[1].Value);
+                    int qty = int.Parse(m.Groups[2].Value);
+                    string unit = m.Groups[3].Value.ToLower();
+
+                    if (taskIdx < 1 || taskIdx > taskList.Count)
+                    {
+                        await AddChatMessageWithEffect("Cypher: That task number doesn't exist.", Brushes.Red);
+                        return true;
+                    }
+
+                    TimeSpan delay = unit.StartsWith("second") ? TimeSpan.FromSeconds(qty) :
+                                     unit.StartsWith("minute") ? TimeSpan.FromMinutes(qty) :
+                                     unit.StartsWith("hour") ? TimeSpan.FromHours(qty) :
+                                                                 TimeSpan.FromDays(qty);
+
+                    ScheduleReminder(taskIdx, taskList[taskIdx - 1].Description, delay);
                     await AddChatMessageWithEffect(
-                        $"Cypher: Task added – \"{task}\" (#{idx})",
-                        Brushes.LightGreen);
-
-                    
-                    _pendingReminderIndex = idx;
-                    _reminderState = ReminderState.AwaitingYesNo;
-
+                        $"Cypher: Reminder set for task {taskIdx} in {qty} {unit}.", Brushes.LightBlue);
+                    return true;
+                }
+                else if (_reminderState == ReminderState.None)   
+                {
                     await AddChatMessageWithEffect(
-                        "Cypher: Would you like a reminder for this task? (yes/no)",
-                        Brushes.LightBlue);
+                        "Cypher: Try `remind task <number> in <number> <seconds|minutes|hours|days>`.",
+                        Brushes.Red);
+                    return true;
+                }
+            }
+            //COmplete task
+            var match = Regex.Match(input,
+ @"\b(?:can you\s+)?(?:(?:complete)|(?:finished?)|(?:done\s+with))\s+task\s+(\d+)\b",
+ RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                if (!int.TryParse(match.Groups[1].Value, out int idx) || idx < 1 || idx > taskList.Count)
+                {
+                    await AddChatMessageWithEffect("Cypher: Invalid task number.", Brushes.Red);
+                    return true;
+                }
+
+                if (!taskList[idx - 1].IsDone)
+                {
+                    taskList[idx - 1].IsDone = true;
+                    ActivityLog.RecordTaskCompleted();
+                    await AddChatMessageWithEffect($"Cypher: Task {idx} marked as complete!", Brushes.LightGreen);
                 }
                 else
                 {
-                    await AddChatMessageWithEffect(
-                        "Cypher: Please provide a valid task description.",
-                        Brushes.Red);
+                    await AddChatMessageWithEffect($"Cypher: Task {idx} is already marked complete.", Brushes.Yellow);
                 }
                 return true;
             }
 
-           
-            if (input.Equals("view tasks", StringComparison.OrdinalIgnoreCase))
+            //Delete tasks
+            var deleteMatch = Regex.Match(input,
+    @"\b(?:delete|remove)\s+task\s+(\d+)\b",
+    RegexOptions.IgnoreCase);
+            if (deleteMatch.Success)
+            {
+                if (!int.TryParse(deleteMatch.Groups[1].Value, out int idx) || idx < 1 || idx > taskList.Count)
+                {
+                    await AddChatMessageWithEffect("Cypher: Invalid task number.", Brushes.Red);
+                    return true;
+                }
+
+                string desc = taskList[idx - 1].Description;
+                taskList.RemoveAt(idx - 1);
+                ActivityLog.RecordTaskDeleted();
+                await AddChatMessageWithEffect($"Cypher: Deleted task \"{desc}\"", Brushes.Orange);
+                return true;
+            }
+
+            var viewMatch = Regex.IsMatch(input,
+                @"\b(?:view|show|list)\s+tasks\b",
+                RegexOptions.IgnoreCase);
+            if (viewMatch)
             {
                 if (taskList.Count == 0)
                 {
@@ -566,7 +711,7 @@ Topics you can ask me about:
                 }
                 else
                 {
-                    var sb = new StringBuilder("Here are your cybersecurity tasks:\n");
+                    var sb = new StringBuilder("Here are your tasks:\n");
                     for (int i = 0; i < taskList.Count; i++)
                         sb.AppendLine($"{i + 1}. [{(taskList[i].IsDone ? '✓' : ' ')}] {taskList[i].Description}");
                     await AddChatMessageWithEffect(sb.ToString(), Brushes.Cyan);
@@ -574,45 +719,63 @@ Topics you can ask me about:
                 return true;
             }
 
-            if (input.StartsWith("complete task ", StringComparison.OrdinalIgnoreCase))
+            return false;  
+        }
+        //This method strips the natural language for add task
+        private string ExtractNaturalLanguageTask(string input)
+        {
+            foreach (var trigger in ClarificationData.AddTaskTriggers)
             {
-                string numStr = input.Substring("complete task ".Length).Trim();
-                if (int.TryParse(numStr, out int idx) && idx >= 1 && idx <= taskList.Count)
+                int idx = input.IndexOf(trigger, StringComparison.OrdinalIgnoreCase);
+                if (idx >= 0)
                 {
-                    taskList[idx - 1].IsDone = true;
+                    string after = input.Substring(idx + trigger.Length).Trim();
+
+                    string[] connectors = { "called", "named", "as", ":" };
+                    foreach (var c in connectors)
+                        if (after.StartsWith(c + " ", StringComparison.OrdinalIgnoreCase))
+                            after = after.Substring(c.Length).Trim();
+
+                    return string.IsNullOrWhiteSpace(after) ? null : after;
+                }
+            }
+            return null;
+        }
+        // When a user enter more/ details/ etc.. this method activates 
+        private async Task HandleClarificationFlow(string input)
+        {
+            if (currentTopic != null && KeywordTips.keywordTips.ContainsKey(currentTopic))
+            {
+                var tips = KeywordTips.keywordTips[currentTopic];
+                var available = Enumerable.Range(0, tips.Count)
+                                          .Where(i => !usedTipIndices.Contains(i))
+                                          .ToList();
+
+                if (available.Count == 0)
+                {
                     await AddChatMessageWithEffect(
-                        $"Cypher: Task {idx} marked as complete!",
-                        Brushes.LightGreen);
+                        "Cypher: I've shared all I have on that topic. Want to ask about something else?",
+                        Brushes.Cyan);
+                    currentTopic = null;
+                    usedTipIndices.Clear();
                 }
                 else
                 {
-                    await AddChatMessageWithEffect("Cypher: Invalid task number.", Brushes.Red);
-                }
-                return true;
-            }
-
-            if (input.StartsWith("delete task ", StringComparison.OrdinalIgnoreCase))
-            {
-                string numStr = input.Substring("delete task ".Length).Trim();
-                if (int.TryParse(numStr, out int idx) && idx >= 1 && idx <= taskList.Count)
-                {
-                    string desc = taskList[idx - 1].Description;
-                    taskList.RemoveAt(idx - 1);
+                    int r = new Random().Next(available.Count);
+                    usedTipIndices.Add(available[r]);
                     await AddChatMessageWithEffect(
-                        $"Cypher: Deleted task \"{desc}\"",
-                        Brushes.Orange);
+                        $"Cypher: Sure, here's another tip on {currentTopic}: {tips[available[r]]}",
+                        Brushes.Cyan);
                 }
-                else
-                {
-                    await AddChatMessageWithEffect("Cypher: Invalid task number.", Brushes.Red);
-                }
-                return true;
             }
-
-            return false;
+            else
+            {
+                await AddChatMessageWithEffect(
+                    "Cypher: Could you clarify which topic you'd like more details on?",
+                    Brushes.Cyan);
             }
-
-
+        }
+        // This method directs to related method when the user wants to set a reminder
         private async Task<bool> HandleReminderYesNo(string input)
         {
             if (!_pendingReminderIndex.HasValue)             
@@ -642,7 +805,7 @@ Topics you can ask me about:
             return true;
         }
 
-        
+        // Handles the input of the reminder time specified
         private async Task<bool> HandleReminderTimeSpec(string input)
         {
             if (!_pendingReminderIndex.HasValue)            
@@ -671,7 +834,7 @@ Topics you can ask me about:
             ResetReminderDialog();
             return true;
         }
-
+        // This method schedules reminders, to go off
         private void ScheduleReminder(int idx, string description, TimeSpan delay)
         {
             _ = Task.Run(async () =>
@@ -693,6 +856,7 @@ Topics you can ask me about:
             });
         }
 
+        // Switch for different units of time
         private static TimeSpan? ParseTimeSpan(string input)
         {
             if (string.IsNullOrWhiteSpace(input)) return null;
@@ -733,6 +897,7 @@ Topics you can ask me about:
             _pendingReminderIndex = null;
         }
 
+        // Start Quiz records the activity
         private async Task StartQuiz()
         {
             _quizScore = 0;
@@ -741,7 +906,7 @@ Topics you can ask me about:
 
             await SendQuizQuestion();
         }
-
+        // Send Quiz QUestions sends the next question
         private async Task SendQuizQuestion()
         {
             if (_quizCurrent == null || _quizCurrent >= QuizQuestions.quizQuestions.Count)
@@ -761,7 +926,7 @@ Topics you can ask me about:
             await AddChatMessageWithEffect(sb.ToString(), Brushes.LightSkyBlue);
         }
 
-
+        //Handle Quiz Answer method checks for errors, and marks the answers, recording the score.
         private async Task<bool> HandleQuizAnswer(string input)
         {
             if (!_quizActive) return false;
@@ -816,11 +981,14 @@ Topics you can ask me about:
             return true;
         }
 
-
+        // End quiz method provides score and records the quiz attempt. 
         private async Task EndQuiz()
         {
             _quizActive = false;
             _quizCurrent = null;
+
+
+            ActivityLog.RecordQuizEnd();
 
             await AddChatMessageWithEffect(
                 $"Quiz finished! Your score: {_quizScore} / {QuizQuestions.quizQuestions.Count}",

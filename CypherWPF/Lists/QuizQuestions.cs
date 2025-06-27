@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace CypherWPF
 {
+    //List of quiz questions, and answers/explanations.
     class QuizQuestions
     {
         public static readonly List<(string Question, string[] Options, int Correct)> quizQuestions =

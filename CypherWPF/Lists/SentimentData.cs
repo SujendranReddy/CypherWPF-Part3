@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace CypherWPF
 {
+    //Sentimental words users may use
     class SentimentData
     {
         public static readonly List<string> sentimentKeywords = new List<string>
